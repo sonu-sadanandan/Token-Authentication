@@ -1,0 +1,24 @@
+# --- Environment / Secret Files ---
+# Keeps your API keys, database credentials, and secrets out of GitHub
+.env
+.env.local
+*.env
+
+# --- JavaScript / Frontend ---
+# Ignores the massive dependencies folder for React/Node
+node_modules/
+/frontend/dist/
+/frontend/build/
+
+# --- Python / Backend ---
+# Ignores compiled bytecode and virtual environments
+**/__pycache__/
+*.pyc
+.venv/
+venv/
+ENV/
+
+# --- OS & IDE Specific ---
+.DS_Store
+.vscode/
+.idea/

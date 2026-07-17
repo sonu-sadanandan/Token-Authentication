@@ -18,7 +18,7 @@ app.add_middleware(
 )  
 
 MONGO_DETAILS = "mongodb://localhost:27017"
-SECRET_KEY = "MY SECRET KEY"
+SECRET_KEY = "secret_key"
 ALGORITHM = "HS256"
 
 client = AsyncIOMotorClient(MONGO_DETAILS)
@@ -40,13 +40,17 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=30)
+    expire = datetime.now() + timedelta(minutes=3)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 #routes
 
-@app.post("signup")
+@app.get("/test")
+async def test():
+    return {"message": "Hello, World!"}
+
+@app.post("/signup")
 async def signup(user: UserSchema):
     existing_user = await users_collection.find_one({"username": user.username})
     if existing_user:
@@ -66,3 +70,13 @@ async def login(user: UserSchema):
     token = create_access_token(data = {"sub":user.username})
     return {"access_token": token, "token_type": "bearer"}
 
+@app.get("/protected")
+async def protected_route(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms = [ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="invalid token")
+        return {"message": f"Hello {username}, you have access to this protected route!"}
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
