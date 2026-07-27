@@ -3,6 +3,7 @@ import { useAuth } from '../auth/authContext';
 
 interface LoginResponse {
     access_token: string;
+    refresh_token: string;
     token_type: string;
 }
 
@@ -41,7 +42,7 @@ export function AuthForm(): React.JSX.Element {
 
             if (isLogin) {
                 const loginData = data as LoginResponse;
-                login(loginData.access_token);
+                login(loginData.access_token, loginData.refresh_token);
                 setMessage('Logged in Successfully');
             } else {
                 setMessage('Registration successfull! Please login');
