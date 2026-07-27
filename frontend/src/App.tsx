@@ -1,12 +1,12 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './auth/authContext';
 import { AuthForm } from './Components/AuthForm';
-import Dashboard from './Components/Dashboard';
+import { Dashboard } from './Components/Dashboard';
 
 function AppContent(): React.JSX.Element {
-    const { token } = useAuth();
+    const { accessToken } = useAuth();
 
-    return token ? <Dashboard /> : <AuthForm />;
+    return accessToken ? <Dashboard /> : <AuthForm />;
 }
 function App() {
     return (

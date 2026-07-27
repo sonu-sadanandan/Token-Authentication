@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../auth/authContext';
+import { fetchWithAutoRefresh } from '../api/authApi';
 
 interface ProtectedResponsse {
     message: string;
@@ -9,17 +10,22 @@ interface ErrorResponse {
     detail: string;
 }
 
-export default function Dashboard(): React.JSX.Element {
-    const { token, logout } = useAuth();
+export function Dashboard(): React.JSX.Element {
+    const { accessToken, refreshToken, updateToken, logout } = useAuth();
     const [secretData, setSecretData] = useState<string>('');
 
     const fetchSecretData = async (): Promise<void> => {
         try {
-            const response = await fetch('http://localhost:8000/protected', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
+            const response = await fetchWithAutoRefresh(
+                'http://localhost:8000/protected',
+                {
+                    method: 'GET',
                 },
-            });
+                accessToken,
+                refreshToken,
+                updateToken,
+                logout
+            );
 
             const data = await response.json();
 
