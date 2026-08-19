@@ -1,55 +1,28 @@
-import React, { useState } from 'react';
-import { useAuth } from '../auth/authContext';
-import { fetchWithAutoRefresh } from '../api/authApi';
-
-interface ProtectedResponsse {
-    message: string;
-}
-
-interface ErrorResponse {
-    detail: string;
-}
+import React from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useAuth } from '../auth/useAuth';
+import { getProtectedData } from '../api/authApi';
 
 export function Dashboard(): React.JSX.Element {
     const { accessToken, refreshToken, updateToken, logout } = useAuth();
-    const [secretData, setSecretData] = useState<string>('');
-
-    const fetchSecretData = async (): Promise<void> => {
-        try {
-            const response = await fetchWithAutoRefresh(
-                'http://localhost:8000/protected',
-                {
-                    method: 'GET',
-                },
-                accessToken,
-                refreshToken,
-                updateToken,
-                logout
-            );
-
-            const data = await response.json();
-
-            if (response.ok) {
-                const successData = data as ProtectedResponsse;
-                setSecretData(successData.message);
-            } else {
-                const errorData = data as ErrorResponse;
-                setSecretData('Failed to fetch data: ' + errorData.detail);
-            }
-        } catch (err) {
-            console.log('Error fetching secret data:', err);
-            setSecretData('network error');
-        }
-    };
+    const secretDataMutation = useMutation({
+        mutationFn: () => getProtectedData({ accessToken, refreshToken, updateToken, logout }),
+    });
 
     return (
         <div style={{ textAlign: 'center', marginTop: '50px' }}>
-            <h2> Dashboard (this is a private area)</h2>
-            <button onClick={fetchSecretData}>Fetch Secret Data</button>
-            {secretData && (
+            <h2>Dashboard (this is a private area)</h2>
+            <button onClick={() => secretDataMutation.mutate()} disabled={secretDataMutation.isPending}>
+                {secretDataMutation.isPending ? 'Loading...' : 'Fetch Secret Data'}
+            </button>
+            {secretDataMutation.data && (
                 <p style={{ fontWeight: 'bold', color: 'green' }}>
-                    {' '}
-                    {secretData}
+                    {secretDataMutation.data.message}
+                </p>
+            )}
+            {secretDataMutation.isError && (
+                <p style={{ fontWeight: 'bold', color: 'crimson' }}>
+                    Failed to fetch data: {secretDataMutation.error.message}
                 </p>
             )}
             <br />

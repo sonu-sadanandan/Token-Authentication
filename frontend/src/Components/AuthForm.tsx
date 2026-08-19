@@ -1,60 +1,39 @@
 import React, { useState } from 'react';
-import { useAuth } from '../auth/authContext';
-
-interface LoginResponse {
-    access_token: string;
-    refresh_token: string;
-    token_type: string;
-}
-
-interface ErrorResponse {
-    detail: string;
-}
+import { useMutation } from '@tanstack/react-query';
+import { login as loginRequest, signUp, type Credentials } from '../api/authApi';
+import { useAuth } from '../auth/useAuth';
 
 export function AuthForm(): React.JSX.Element {
-    const [isLogin, setIsLogin] = useState<boolean>(true);
-    const [username, setUsername] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
-    const [message, setMessage] = useState<string>('');
+    const [isLogin, setIsLogin] = useState(true);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [message, setMessage] = useState('');
     const { login } = useAuth();
 
-    const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const endpoint = isLogin ? '/login' : '/signup';
+    const loginMutation = useMutation({
+        mutationFn: loginRequest,
+        onSuccess: (data) => {
+            login(data.access_token, data.refresh_token);
+            setMessage('Logged in successfully');
+        },
+        onError: (error) => setMessage(error.message),
+    });
+    const signUpMutation = useMutation({
+        mutationFn: signUp,
+        onSuccess: () => {
+            setMessage('Registration successful! Please log in.');
+            setIsLogin(true);
+        },
+        onError: (error) => setMessage(error.message),
+    });
+    const isPending = loginMutation.isPending || signUpMutation.isPending;
 
-        try {
-            const response = await fetch(`http://localhost:8000${endpoint}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                const errorData = data as ErrorResponse;
-                throw new Error(
-                    errorData.detail || 'Something went wrong here'
-                );
-            }
-
-            if (isLogin) {
-                const loginData = data as LoginResponse;
-                login(loginData.access_token, loginData.refresh_token);
-                setMessage('Logged in Successfully');
-            } else {
-                setMessage('Registration successfull! Please login');
-                setIsLogin(true);
-            }
-        } catch (err) {
-            if (err instanceof Error) {
-                setMessage(err.message);
-            } else {
-                setMessage('An unknown error occurred');
-            }
-        }
+    const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>): void => {
+        event.preventDefault();
+        setMessage('');
+        const credentials: Credentials = { username, password };
+        if (isLogin) loginMutation.mutate(credentials);
+        else signUpMutation.mutate(credentials);
     };
 
     return (
@@ -83,10 +62,13 @@ export function AuthForm(): React.JSX.Element {
                         required
                     />
                 </div>
-                <button type="submit"> {isLogin ? 'Login' : 'Sign Up'}</button>
+                <button type="submit" disabled={isPending}>
+                    {isPending ? 'Submitting...' : isLogin ? 'Login' : 'Sign Up'}
+                </button>
             </form>
             <button
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => { setIsLogin(!isLogin); setMessage(''); }}
+                disabled={isPending}
                 style={{
                     background: 'none',
                     border: 'none',
